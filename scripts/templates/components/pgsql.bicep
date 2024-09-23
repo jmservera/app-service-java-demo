@@ -88,15 +88,6 @@ resource allowAppServiceIPs 'Microsoft.DBforPostgreSQL/flexibleServers/firewallR
   }
 }]
 
-resource allowAllIPsFirewallRule 'Microsoft.DBforPostgreSQL/flexibleServers/firewallRules@2022-03-08-preview' = {
-  name: 'AllowAllWindowsAzureIps'
-  parent: postgreSQLServer
-  properties: {
-    startIpAddress: '0.0.0.0'
-    endIpAddress: '0.0.0.0'
-  }
-}
-
 resource postgreSQLServerDiagnotsicsLogs 'Microsoft.Insights/diagnosticSettings@2021-05-01-preview' = {
   name: '${name}-db-logs'
   dependsOn: [
@@ -124,9 +115,9 @@ resource postgreSQLServerDiagnotsicsLogs 'Microsoft.Insights/diagnosticSettings@
   }
 }
 
-var tmpAppServiceIPs = !empty(incomingIpAddressesUniqueArray) ? map(incomingIpAddressesUniqueArray, item => 'AppService_${replace(item, '.', '_')}') : [allowAllAzureIPsFirewallRule.name]
-var tmpDeploymentClientIPAddressArray = !empty(deploymentClientIPAddress) ? [deploymentClientIPAddress] : []
+var tmpAppServiceIPs = empty(incomingIpAddressesUniqueArray) ? [allowAllAzureIPsFirewallRule.name] : map(incomingIpAddressesUniqueArray, item => 'AppService_${replace(item, '.', '_')}')
+var tmpDeploymentClientIPAddressArray = empty(deploymentClientIPAddress) ? [] : [allowClientIPFirewallRule.name]
 
 var appServiceIPs = union(tmpDeploymentClientIPAddressArray, tmpAppServiceIPs)
 
-output validFirewallRules string = (!empty(appServiceIPs)) ? '${appServiceIPs},AllowDeploymentClientIP' : 'AllowAllAzureIps,AllowDeploymentClientIP'
+output validFirewallRules array = appServiceIPs
